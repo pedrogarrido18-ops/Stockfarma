@@ -22,13 +22,6 @@
         body { margin: 0; padding: 10px; background: var(--bg); color: var(--text); }
         .container { max-width: 920px; margin: 0 auto; }
 
-        /* Ecrã de Bloqueio por Password */
-        #lock-screen {
-            position: fixed; inset: 0; background: var(--bg); z-index: 999;
-            display: flex; align-items: center; justify-content: center; padding: 16px;
-        }
-        .lock-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 380px; text-align: center; }
-
         .tabs { display: flex; gap: 6px; margin-bottom: 12px; position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 4px 0; }
         .tab-btn {
             flex: 1; padding: 11px 6px; border: none; border-radius: 8px;
@@ -40,7 +33,7 @@
         h2 { margin: 0 0 10px 0; font-size: 16px; color: var(--primary-dark); }
 
         .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-        input[type="text"], input[type="number"], input[type="password"], select {
+        input[type="text"], input[type="number"], select {
             padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 15px; width: 100%;
         }
         input:focus { outline: none; border-color: var(--primary); }
@@ -52,7 +45,6 @@
         .btn-secondary { background: #334155; color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-success { background: var(--success); color: white; }
-        .btn-warning { background: #f59e0b; color: #fff; }
 
         #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; }
 
@@ -87,17 +79,6 @@
     </style>
 </head>
 <body>
-
-    <!-- ECRÃ DE SEGURANÇA (PASSWORD) -->
-    <div id="lock-screen">
-        <div class="lock-card">
-            <h2>🔒 Acesso Restrito</h2>
-            <p style="font-size:13px; color:var(--muted); margin-bottom:14px;">Introduz a palavra-passe da farmácia para abrir a ferramenta de inventário:</p>
-            <input type="password" id="app-password" placeholder="Palavra-passe..." style="margin-bottom:10px;">
-            <button class="btn btn-primary" style="width:100%;" onclick="checkPassword()">Entrar</button>
-            <p id="lock-error" style="color:var(--danger); font-size:12px; margin-top:8px; display:none;">Palavra-passe incorreta.</p>
-        </div>
-    </div>
 
 <div class="container">
     <div class="tabs">
@@ -160,4 +141,300 @@
             <div id="reader"></div>
 
             <div class="input-group">
-                <input type="text" id="cnp-
+                <input type="text" id="cnp-input" placeholder="Digita o CNP..." inputmode="numeric">
+                <input type="number" id="qty-input" value="1" min="1" style="max-width: 80px; text-align: center; font-weight:700;">
+                <button class="btn btn-primary" onclick="addDirectCNP()">➕ Somar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="summary-grid">
+                <div class="stat-box">Ref. Contadas<span id="total-skus">0</span></div>
+                <div class="stat-box">Unidades<span id="total-units">0</span></div>
+                <div class="stat-box"><button class="btn btn-success" style="width:100%; height:100%; font-size:12px;" onclick="exportCountCSV()">💾 CSV</button></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h2>Já Contados</h2>
+                <button class="btn btn-danger btn-sm" onclick="clearCounts()">🗑️ Zerar</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CNP</th>
+                            <th>Produto</th>
+                            <th>Contado</th>
+                            <th>Ajustar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="counted-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABA 3: RECONCILIAÇÃO -->
+    <div id="tab-reconcile" class="hidden">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <h2>Folha de Acertos Sifarma</h2>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="font-size:13px; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="only-diffs" checked onchange="renderReconcileTable()"> Só Divergências
+                    </label>
+                    <button class="btn btn-success btn-sm" onclick="exportFinalExcel()">📥 Excel</button>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CNP</th>
+                            <th>Designação</th>
+                            <th>Sifarma</th>
+                            <th>Físico</th>
+                            <th>Diferença</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reconcile-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let catalogue = JSON.parse(localStorage.getItem('sifarma_catalogue') || '[]');
+    let counts = JSON.parse(localStorage.getItem('sifarma_cnp_counts') || '{}');
+    let rawSheet = [];
+    let reconcileData = [];
+    let html5QrCode = null;
+    let cameraActive = false;
+
+    function normalizeCNP(rawCode) {
+        const clean = String(rawCode || '').trim();
+        if (/^\d{7}$/.test(clean)) return clean;
+        const match7 = clean.match(/\d{7}/);
+        if (match7) {
+            const candidate = match7[0];
+            if (catalogue.some(p => p.cnp === candidate) || clean.length <= 10) return candidate;
+        }
+        return clean;
+    }
+
+    function playBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 1150; gain.gain.value = 0.12;
+            osc.start(); setTimeout(() => osc.stop(), 100);
+        } catch(e) {}
+    }
+
+    function switchTab(tab) {
+        ['setup', 'count', 'reconcile'].forEach((t, idx) => {
+            document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
+            document.querySelectorAll('.tab-btn')[idx].classList.toggle('active', t === tab);
+        });
+        if (tab === 'count') renderSearchList();
+        if (tab === 'reconcile') calculateDifferences();
+    }
+
+    function loadSifarmaFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const data = new Uint8Array(evt.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            rawSheet = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+            if (rawSheet.length > 0) {
+                const headers = Object.keys(rawSheet[0]);
+                ['col-cnp', 'col-name', 'col-stock'].forEach(id => {
+                    document.getElementById(id).innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                });
+                headers.forEach(h => {
+                    const low = h.toLowerCase();
+                    if (low.includes('cnp') || low.includes('cód') || low.includes('cod')) document.getElementById('col-cnp').value = h;
+                    if (low.includes('designa') || low.includes('nome') || low.includes('prod')) document.getElementById('col-name').value = h;
+                    if (low.includes('stock') || low.includes('exist') || low.includes('qtd')) document.getElementById('col-stock').value = h;
+                });
+                document.getElementById('column-mapper').classList.remove('hidden');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function applyCatalogue() {
+        const cCNP = document.getElementById('col-cnp').value;
+        const cName = document.getElementById('col-name').value;
+        const cStock = document.getElementById('col-stock').value;
+
+        catalogue = rawSheet.map(r => ({
+            cnp: String(r[cCNP] || '').trim(),
+            name: String(r[cName] || '').trim(),
+            stock: parseInt(r[cStock]) || 0
+        })).filter(item => item.cnp !== '');
+
+        localStorage.setItem('sifarma_catalogue', JSON.stringify(catalogue));
+        updateCatalogueStatus();
+        switchTab('count');
+    }
+
+    function updateCatalogueStatus() {
+        const el = document.getElementById('catalogue-status');
+        if (catalogue.length > 0) {
+            el.innerHTML = `✅ <b>${catalogue.length} produtos</b> carregados! Podes ir para a Aba 2.`;
+            el.style.color = 'var(--success)';
+        } else {
+            el.innerHTML = `Nenhum catálogo carregado.`;
+            el.style.color = 'var(--muted)';
+        }
+    }
+
+    function renderSearchList() {
+        const container = document.getElementById('search-results');
+        const q = (document.getElementById('search-box').value || '').toLowerCase().trim();
+
+        if (catalogue.length === 0) {
+            container.innerHTML = `<div style="padding:12px; color:var(--muted); font-size:13px;">Carrega primeiro o Excel do Sifarma na Aba 1.</div>`;
+            return;
+        }
+
+        const filtered = catalogue.filter(p => 
+            p.name.toLowerCase().includes(q) || p.cnp.toLowerCase().includes(q)
+        ).slice(0, 80);
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div style="padding:12px; color:var(--danger); font-size:13px;">Nenhum produto encontrado.</div>`;
+            return;
+        }
+
+        container.innerHTML = filtered.map(p => {
+            const currentCount = counts[p.cnp] || 0;
+            return `
+                <div class="product-row">
+                    <div class="product-info">
+                        <span class="product-cnp">${p.cnp}</span>
+                        ${currentCount > 0 ? `<span class="qty-badge" style="margin-left:6px;">Contado: ${currentCount}</span>` : ''}
+                        <div class="product-name">${p.name}</div>
+                    </div>
+                    <div class="quick-entry">
+                        <input type="number" id="q-${p.cnp}" class="quick-qty-input" value="1" min="0" inputmode="numeric">
+                        <button class="btn btn-primary btn-sm" onclick="addFromList('${p.cnp}')">+ Somar</button>
+                        <button class="btn btn-secondary btn-sm" onclick="setExactFromList('${p.cnp}')">Fixar</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function addFromList(cnp) {
+        const input = document.getElementById('q-' + cnp);
+        const qty = parseInt(input.value) || 0;
+        if (qty <= 0) return;
+        counts[cnp] = (counts[cnp] || 0) + qty;
+        input.value = 1;
+        playBeep();
+        saveCounts();
+        renderSearchList();
+    }
+
+    function setExactFromList(cnp) {
+        const input = document.getElementById('q-' + cnp);
+        const qty = parseInt(input.value);
+        if (isNaN(qty) || qty < 0) return;
+        counts[cnp] = qty;
+        playBeep();
+        saveCounts();
+        renderSearchList();
+    }
+
+    function addDirectCNP(scannedCode = null) {
+        const cnpEl = document.getElementById('cnp-input');
+        const qtyEl = document.getElementById('qty-input');
+        const raw = scannedCode || cnpEl.value;
+        const cnp = normalizeCNP(raw);
+        const qty = parseInt(qtyEl.value) || 1;
+
+        if (!cnp) return;
+        counts[cnp] = (counts[cnp] || 0) + qty;
+        playBeep();
+        saveCounts();
+        renderSearchList();
+
+        cnpEl.value = '';
+        qtyEl.value = '1';
+    }
+
+    function saveCounts() {
+        localStorage.setItem('sifarma_cnp_counts', JSON.stringify(counts));
+        const tbody = document.getElementById('counted-list');
+        tbody.innerHTML = '';
+        let skus = 0, units = 0;
+
+        const nameMap = {};
+        catalogue.forEach(p => nameMap[p.cnp] = p.name);
+
+        Object.entries(counts).reverse().forEach(([cnp, qty]) => {
+            skus++;
+            units += qty;
+            const prodName = nameMap[cnp] || '⚠️ CNP fora do catálogo';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-family:monospace; font-weight:700;">${cnp}</td>
+                <td>${prodName}</td>
+                <td><span class="qty-badge">${qty}</span></td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', -1)">-1</button>
+                    <button class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', 1)">+1</button>
+                    <button class="btn-sm" style="border:1px solid #fca5a5; background:#fef2f2; color:red;" onclick="deleteCount('${cnp}')">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-skus').innerText = skus;
+        document.getElementById('total-units').innerText = units;
+    }
+
+    function adjustCount(cnp, delta) {
+        counts[cnp] = (counts[cnp] || 0) + delta;
+        if (counts[cnp] < 0) counts[cnp] = 0;
+        saveCounts();
+        renderSearchList();
+    }
+
+    function deleteCount(cnp) {
+        delete counts[cnp];
+        saveCounts();
+        renderSearchList();
+    }
+
+    function clearCounts() {
+        if (confirm('Apagar todas as contagens?')) {
+            counts = {};
+            saveCounts();
+            renderSearchList();
+        }
+    }
+
+    function toggleCamera() {
+        const readerDiv = document.getElementById('reader');
+        const btn = document.getElementById('btn-cam');
+        if (!cameraActive) {
+            readerDiv.style.display = 'block';
+            btn.innerText = '⏹️ Desligar Câmara';
+            html5QrCode = new Html5Qrcode("reader");
+            let lastScan = 0;
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 110 } },
+                (decodedText) => {
+                    const now = Date.now();
+                    if (now - lastScan > 1600) {
+                    
