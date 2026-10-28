@@ -45,6 +45,7 @@
         .btn-secondary { background: #334155; color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: #f59e0b; color: #fff; }
 
         #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; }
 
@@ -89,9 +90,19 @@
 
     <!-- ABA 1: CATÁLOGO SIFARMA -->
     <div id="tab-setup">
+        <div class="card" style="border: 2px solid #f59e0b; background: #fffbeb;">
+            <h2 style="color: #b45309;">🧪 Teste Rápido (Sem Ficheiro)</h2>
+            <p style="font-size:13px; color:#78350f; margin-top:0;">
+                Se quiseres testar já no telemóvel sem carregar nenhum Excel do Sifarma, clica aqui para carregar produtos de teste:
+            </p>
+            <button class="btn btn-warning" style="width:100%;" onclick="loadDemoData()">
+                🚀 Carregar Produtos de Teste Agora
+            </button>
+        </div>
+
         <div class="card">
             <h2>Carregar Excel / CSV do Sifarma</h2>
-            <p style="font-size:13px; color:var(--muted); margin-top:0;">Carrega o ficheiro exportado do Sifarma para habilitar a pesquisa por nome.</p>
+            <p style="font-size:13px; color:var(--muted); margin-top:0;">Carrega o ficheiro exportado do Sifarma (certifica-te de que a 1ª linha são os cabeçalhos).</p>
             <input type="file" id="sifarma-file" accept=".xlsx,.xls,.csv" onchange="loadSifarmaFile(event)" style="margin-bottom:10px;">
 
             <div id="column-mapper" class="hidden" style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #cbd5e1;">
@@ -110,14 +121,14 @@
                         <select id="col-stock"></select>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="width:100%;" onclick="applyCatalogue()">✅ Guardar Catálogo</button>
+                <button class="btn btn-primary" style="width:100%;" onclick="applyCatalogue()">✅ Guardar Catálogo e Avançar</button>
             </div>
         </div>
 
         <div class="card">
             <h2>Estado do Catálogo</h2>
             <p id="catalogue-status" style="font-size:14px; font-weight:600; color:var(--muted); margin:0;">
-                Nenhum catálogo carregado.
+                Nenhum catálogo carregado. (Usa o botão amarelo acima para testar).
             </p>
         </div>
     </div>
@@ -127,7 +138,7 @@
         <div class="card">
             <h2>🔍 Modo Manual: Pesquisar Nome ou CNP</h2>
             <div class="input-group" style="margin-bottom:4px;">
-                <input type="text" id="search-box" placeholder="Ex: creme, serum, 694..." oninput="renderSearchList()">
+                <input type="text" id="search-box" placeholder="Ex: isdin, effaclar, cerave..." oninput="renderSearchList()">
                 <button class="btn btn-secondary" onclick="document.getElementById('search-box').value=''; renderSearchList();">Limpar</button>
             </div>
             <div id="search-results" class="search-results"></div>
@@ -212,6 +223,21 @@
     let html5QrCode = null;
     let cameraActive = false;
 
+    // DADOS DE DEMONSTRAÇÃO PARA TESTAR SEM FICHEIRO
+    function loadDemoData() {
+        catalogue = [
+            { cnp: "6943217", name: "ISDIN Fotoprotector Fusion Water SPF50 50ml", stock: 6 },
+            { cnp: "6821405", name: "ISDIN Fotoultra Age Repair SPF50 50ml", stock: 4 },
+            { cnp: "6593812", name: "LA ROCHE-POSAY Effaclar Duo+M Creme 40ml", stock: 8 },
+            { cnp: "7039281", name: "CAUDALIE Vinoperfect Sérum Antimanchas 30ml", stock: 4 },
+            { cnp: "6981120", name: "CERAVE Loção Hidratante Corpo 473ml", stock: 7 }
+        ];
+        localStorage.setItem('sifarma_catalogue', JSON.stringify(catalogue));
+        updateCatalogueStatus();
+        alert('Catálogo de teste carregado com sucesso! Já podes mudar para a aba "2. Contar".');
+        switchTab('count');
+    }
+
     function normalizeCNP(rawCode) {
         const clean = String(rawCode || '').trim();
         if (/^\d{7}$/.test(clean)) return clean;
@@ -248,22 +274,28 @@
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(evt) {
-            const data = new Uint8Array(evt.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
-            const sheet = wb.Sheets[wb.SheetNames[0]];
-            rawSheet = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-            if (rawSheet.length > 0) {
-                const headers = Object.keys(rawSheet[0]);
-                ['col-cnp', 'col-name', 'col-stock'].forEach(id => {
-                    document.getElementById(id).innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
-                });
-                headers.forEach(h => {
-                    const low = h.toLowerCase();
-                    if (low.includes('cnp') || low.includes('cód') || low.includes('cod')) document.getElementById('col-cnp').value = h;
-                    if (low.includes('designa') || low.includes('nome') || low.includes('prod')) document.getElementById('col-name').value = h;
-                    if (low.includes('stock') || low.includes('exist') || low.includes('qtd')) document.getElementById('col-stock').value = h;
-                });
-                document.getElementById('column-mapper').classList.remove('hidden');
+            try {
+                const data = new Uint8Array(evt.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                rawSheet = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                if (rawSheet.length > 0) {
+                    const headers = Object.keys(rawSheet[0]);
+                    ['col-cnp', 'col-name', 'col-stock'].forEach(id => {
+                        document.getElementById(id).innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+                    });
+                    headers.forEach(h => {
+                        const low = h.toLowerCase();
+                        if (low.includes('cnp') || low.includes('cód') || low.includes('cod')) document.getElementById('col-cnp').value = h;
+                        if (low.includes('designa') || low.includes('nome') || low.includes('prod')) document.getElementById('col-name').value = h;
+                        if (low.includes('stock') || low.includes('exist') || low.includes('qtd')) document.getElementById('col-stock').value = h;
+                    });
+                    document.getElementById('column-mapper').classList.remove('hidden');
+                } else {
+                    alert('O ficheiro parece estar vazio.');
+                }
+            } catch(err) {
+                alert('Erro ao ler o ficheiro Excel. Confirma se é um .xlsx válido.');
             }
         };
         reader.readAsArrayBuffer(file);
@@ -282,13 +314,14 @@
 
         localStorage.setItem('sifarma_catalogue', JSON.stringify(catalogue));
         updateCatalogueStatus();
+        alert('Catálogo guardado com sucesso!');
         switchTab('count');
     }
 
     function updateCatalogueStatus() {
         const el = document.getElementById('catalogue-status');
         if (catalogue.length > 0) {
-            el.innerHTML = `✅ <b>${catalogue.length} produtos</b> carregados! Podes ir para a Aba 2.`;
+            el.innerHTML = `✅ <b>${catalogue.length} produtos</b> ativos na memória. Podes saltar livremente entre as abas em cima.`;
             el.style.color = 'var(--success)';
         } else {
             el.innerHTML = `Nenhum catálogo carregado.`;
@@ -301,7 +334,7 @@
         const q = (document.getElementById('search-box').value || '').toLowerCase().trim();
 
         if (catalogue.length === 0) {
-            container.innerHTML = `<div style="padding:12px; color:var(--muted); font-size:13px;">Carrega primeiro o Excel do Sifarma na Aba 1.</div>`;
+            container.innerHTML = `<div style="padding:12px; color:var(--muted); font-size:13px;">Carrega primeiro um catálogo na Aba 1 (ou usa o botão de teste rápido).</div>`;
             return;
         }
 
@@ -437,4 +470,105 @@
                 (decodedText) => {
                     const now = Date.now();
                     if (now - lastScan > 1600) {
+                        lastScan = now;
+                        addDirectCNP(decodedText);
+                    }
+                }
+            ).catch(() => {
+                alert("A câmara exige HTTPS (o GitHub Pages fornece HTTPS automaticamente).");
+                readerDiv.style.display = 'none';
+                btn.innerText = '📷 Abrir Câmara';
+            });
+            cameraActive = true;
+        } else {
+            html5QrCode.stop().then(() => {
+                readerDiv.style.display = 'none';
+                btn.innerText = '📷 Abrir Câmara';
+                cameraActive = false;
+            });
+        }
+    }
+
+    function calculateDifferences() {
+        if (catalogue.length === 0) return;
+        const seenCNPs = new Set();
+        reconcileData = [];
+
+        catalogue.forEach(item => {
+            seenCNPs.add(item.cnp);
+            const counted = counts[item.cnp] !== undefined ? counts[item.cnp] : 0;
+            const diff = counted - item.stock;
+            if (item.stock !== 0 || counted !== 0) {
+                reconcileData.push({
+                    cnp: item.cnp,
+                    name: item.name,
+                    sifarma: item.stock,
+                    counted: counted,
+                    diff: diff
+                });
+            }
+        });
+
+        for (const [cnp, qty] of Object.entries(counts)) {
+            if (!seenCNPs.has(cnp) && qty > 0) {
+                reconcileData.push({
+                    cnp: cnp,
+                    name: '⚠️ Contado mas ausente no catálogo Sifarma',
+                    sifarma: 0,
+                    counted: qty,
+                    diff: qty
+                });
+            }
+        }
+        renderReconcileTable();
+    }
+
+    function renderReconcileTable() {
+        const onlyDiffs = document.getElementById('only-diffs').checked;
+        const tbody = document.getElementById('reconcile-tbody');
+        tbody.innerHTML = '';
+
+        reconcileData
+            .filter(r => !onlyDiffs || r.diff !== 0)
+            .forEach(r => {
+                const tr = document.createElement('tr');
+                const cls = r.diff < 0 ? 'diff-neg' : (r.diff > 0 ? 'diff-pos' : 'diff-ok');
+                const sign = r.diff > 0 ? `+${r.diff}` : r.diff;
+                tr.innerHTML = `
+                    <td style="font-family:monospace; font-weight:700;">${r.cnp}</td>
+                    <td>${r.name}</td>
+                    <td>${r.sifarma}</td>
+                    <td style="font-weight:700;">${r.counted}</td>
+                    <td class="${cls}">${sign}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+    }
+
+    function exportCountCSV() {
+        if (Object.keys(counts).length === 0) return alert('Sem contagens!');
+        let csv = 'CNP;Quantidade_Contada\n';
+        for (const [cnp, qty] of Object.entries(counts)) csv += `${cnp};${qty}\n`;
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Contagem_CNP.csv`;
+        a.click();
+    }
+
+    function exportFinalExcel() {
+        const onlyDiffs = document.getElementById('only-diffs').checked;
+        const rows = reconcileData.filter(r => !onlyDiffs || r.diff !== 0);
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Acertos_CNP");
+        XLSX.writeFile(wb, `Acertos_Sifarma.xlsx`);
+    }
+
+    updateCatalogueStatus();
+    saveCounts();
+</script>
+</body>
+</html>
+
                     
