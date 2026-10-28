@@ -17,6 +17,7 @@
             --danger: #dc2626;
             --success: #16a34a;
             --warning: #d97706;
+            --onedrive: #0078d4;
         }
         * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { margin: 0; padding: 10px; background: var(--bg); color: var(--text); }
@@ -24,7 +25,7 @@
 
         .tabs { display: flex; gap: 6px; margin-bottom: 12px; position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 4px 0; }
         .tab-btn {
-            flex: 1; padding: 11px 6px; border: none; border-radius: 8px;
+            flex: 1; padding: 12px 6px; border: none; border-radius: 8px;
             background: #cbd5e1; color: #334155; font-weight: 700; font-size: 13px; cursor: pointer;
         }
         .tab-btn.active { background: var(--primary); color: white; }
@@ -46,11 +47,12 @@
         .btn-danger { background: var(--danger); color: white; }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: #f59e0b; color: #fff; }
+        .btn-onedrive { background: var(--onedrive); color: #fff; }
 
         #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; }
 
         .search-results {
-            max-height: 360px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 8px;
+            max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 8px;
         }
         .product-row {
             display: flex; justify-content: space-between; align-items: center;
@@ -83,37 +85,40 @@
 
 <div class="container">
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('setup')">📂 1. Catálogo</button>
-        <button class="tab-btn" onclick="switchTab('count')">📱 2. Contar</button>
-        <button class="tab-btn" onclick="switchTab('reconcile')">📊 3. Diferenças</button>
+        <button type="button" class="tab-btn active" onclick="switchTab('setup')">📂 1. Catálogo</button>
+        <button type="button" class="tab-btn" onclick="switchTab('count')">📱 2. Contar</button>
+        <button type="button" class="tab-btn" onclick="switchTab('reconcile')">📊 3. Diferenças</button>
     </div>
 
     <!-- ABA 1: CATÁLOGO SIFARMA -->
     <div id="tab-setup">
-        <div class="card" style="border: 2px solid #f59e0b; background: #fffbeb;">
-            <h2 style="color: #b45309;">🧪 Teste Rápido (Sem Ficheiro)</h2>
-            <p style="font-size:13px; color:#78350f; margin-top:0;">
-                Se quiseres testar já no telemóvel sem carregar nenhum Excel do Sifarma, clica aqui para carregar produtos de teste:
-            </p>
-            <button class="btn btn-warning" style="width:100%;" onclick="loadDemoData()">
-                🚀 Carregar Produtos de Teste Agora
+        <div class="card" style="border: 2px solid #0078d4; background: #f0f6ff;">
+            <h2 style="color: #005a9e;">☁️ Fluxo OneDrive + Telemóvel</h2>
+            <ol style="font-size:13px; color:#1e3a8a; margin: 0 0 10px 0; padding-left: 20px; line-height: 1.5;">
+                <li>No PC, guarda o Excel exportado do Sifarma na tua pasta do <b>OneDrive</b>.</li>
+                <li>No telemóvel, escolhe o ficheiro abaixo (podes selecioná-lo diretamente da pasta OneDrive do Android).</li>
+                <li>No fim da contagem (Aba 3), clica em <b>"☁️ Guardar no OneDrive"</b>.</li>
+            </ol>
+            <button type="button" class="btn btn-warning" style="width:100%;" onclick="loadDemoData()">
+                🧪 Carregar 5 Produtos de Teste (Testar sem Ficheiro)
             </button>
         </div>
 
         <div class="card">
-            <h2>Carregar Excel / CSV do Sifarma</h2>
-            <p style="font-size:13px; color:var(--muted); margin-top:0;">Carrega o ficheiro exportado do Sifarma (certifica-te de que a 1ª linha são os cabeçalhos).</p>
+            <h2>Carregar Ficheiro Excel / CSV do Sifarma</h2>
             <input type="file" id="sifarma-file" accept=".xlsx,.xls,.csv" onchange="loadSifarmaFile(event)" style="margin-bottom:10px;">
 
             <div id="column-mapper" class="hidden" style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #cbd5e1;">
-                <p style="margin:0 0 8px 0; font-weight:700; font-size:13px;">Confirma as 3 colunas do ficheiro:</p>
+                <p style="margin:0 0 8px 0; font-weight:700; font-size:13px; color:var(--primary-dark);">
+                    ✅ Ficheiro lido! Confirma as 3 colunas abaixo:
+                </p>
                 <div class="input-group" style="flex-wrap: wrap;">
                     <div style="flex:1; min-width:140px;">
                         <label style="font-size:11px; font-weight:700;">Coluna CNP:</label>
                         <select id="col-cnp"></select>
                     </div>
                     <div style="flex:2; min-width:180px;">
-                        <label style="font-size:11px; font-weight:700;">Coluna Designação:</label>
+                        <label style="font-size:11px; font-weight:700;">Coluna Designação / Nome:</label>
                         <select id="col-name"></select>
                     </div>
                     <div style="flex:1; min-width:140px;">
@@ -121,40 +126,47 @@
                         <select id="col-stock"></select>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="width:100%;" onclick="applyCatalogue()">✅ Guardar Catálogo e Avançar</button>
+                <button type="button" class="btn btn-primary" style="width:100%;" onclick="applyCatalogue()">
+                    ✅ Guardar Catálogo e Ir para Contagem
+                </button>
             </div>
         </div>
 
         <div class="card">
-            <h2>Estado do Catálogo</h2>
-            <p id="catalogue-status" style="font-size:14px; font-weight:600; color:var(--muted); margin:0;">
-                Nenhum catálogo carregado. (Usa o botão amarelo acima para testar).
-            </p>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <h2>Estado da Memória</h2>
+                    <p id="catalogue-status" style="font-size:14px; font-weight:600; color:var(--muted); margin:0;">
+                        Nenhum catálogo carregado.
+                    </p>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="resetAllApp()">🔄 Novo Inventário (Limpar Tudo)</button>
+            </div>
         </div>
     </div>
 
     <!-- ABA 2: CONTAR NA PRATELEIRA -->
     <div id="tab-count" class="hidden">
         <div class="card">
-            <h2>🔍 Modo Manual: Pesquisar Nome ou CNP</h2>
+            <h2>🔍 Pesquisar Nome ou CNP (Sem Câmara)</h2>
             <div class="input-group" style="margin-bottom:4px;">
-                <input type="text" id="search-box" placeholder="Ex: isdin, effaclar, cerave..." oninput="renderSearchList()">
-                <button class="btn btn-secondary" onclick="document.getElementById('search-box').value=''; renderSearchList();">Limpar</button>
+                <input type="text" id="search-box" placeholder="Escreve parte do nome ou CNP..." oninput="renderSearchList()">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('search-box').value=''; renderSearchList();">Limpar</button>
             </div>
             <div id="search-results" class="search-results"></div>
         </div>
 
         <div class="card">
             <h2>📷 Leitor de Etiqueta CNP</h2>
-            <button id="btn-cam" class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="toggleCamera()">
-                📷 Abrir Câmara
+            <button type="button" id="btn-cam" class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="toggleCamera()">
+                📷 Abrir Câmara para Ler Etiqueta
             </button>
             <div id="reader"></div>
 
             <div class="input-group">
-                <input type="text" id="cnp-input" placeholder="Digita o CNP..." inputmode="numeric">
+                <input type="text" id="cnp-input" placeholder="Digita o CNP (7 dígitos)..." inputmode="numeric">
                 <input type="number" id="qty-input" value="1" min="1" style="max-width: 80px; text-align: center; font-weight:700;">
-                <button class="btn btn-primary" onclick="addDirectCNP()">➕ Somar</button>
+                <button type="button" class="btn btn-primary" onclick="addDirectCNP()">➕ Somar</button>
             </div>
         </div>
 
@@ -162,12 +174,12 @@
             <div class="summary-grid">
                 <div class="stat-box">Ref. Contadas<span id="total-skus">0</span></div>
                 <div class="stat-box">Unidades<span id="total-units">0</span></div>
-                <div class="stat-box"><button class="btn btn-success" style="width:100%; height:100%; font-size:12px;" onclick="exportCountCSV()">💾 CSV</button></div>
+                <div class="stat-box"><button type="button" class="btn btn-success" style="width:100%; height:100%; font-size:12px;" onclick="exportCountCSV()">💾 CSV</button></div>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <h2>Já Contados</h2>
-                <button class="btn btn-danger btn-sm" onclick="clearCounts()">🗑️ Zerar</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="clearCounts()">🗑️ Zerar Contagem</button>
             </div>
             <div style="overflow-x:auto;">
                 <table>
@@ -189,14 +201,21 @@
     <div id="tab-reconcile" class="hidden">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                <h2>Folha de Acertos Sifarma</h2>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <label style="font-size:13px; font-weight:600; cursor:pointer;">
-                        <input type="checkbox" id="only-diffs" checked onchange="renderReconcileTable()"> Só Divergências
-                    </label>
-                    <button class="btn btn-success btn-sm" onclick="exportFinalExcel()">📥 Excel</button>
-                </div>
+                <h2>Folha de Acertos para o Sifarma</h2>
+                <label style="font-size:13px; font-weight:600; cursor:pointer;">
+                    <input type="checkbox" id="only-diffs" checked onchange="renderReconcileTable()"> Mostrar Só Divergências
+                </label>
             </div>
+            
+            <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-onedrive" style="flex:1; min-width:180px;" onclick="shareToOneDrive()">
+                    ☁️ Guardar Acertos no OneDrive
+                </button>
+                <button type="button" class="btn btn-success" style="flex:1; min-width:160px;" onclick="exportFinalExcel()">
+                    📥 Descarregar Excel no Dispositivo
+                </button>
+            </div>
+
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
@@ -223,7 +242,6 @@
     let html5QrCode = null;
     let cameraActive = false;
 
-    // DADOS DE DEMONSTRAÇÃO PARA TESTAR SEM FICHEIRO
     function loadDemoData() {
         catalogue = [
             { cnp: "6943217", name: "ISDIN Fotoprotector Fusion Water SPF50 50ml", stock: 6 },
@@ -234,7 +252,6 @@
         ];
         localStorage.setItem('sifarma_catalogue', JSON.stringify(catalogue));
         updateCatalogueStatus();
-        alert('Catálogo de teste carregado com sucesso! Já podes mudar para a aba "2. Contar".');
         switchTab('count');
     }
 
@@ -247,6 +264,12 @@
             if (catalogue.some(p => p.cnp === candidate) || clean.length <= 10) return candidate;
         }
         return clean;
+    }
+
+    function parseStockNumber(val) {
+        if (typeof val === 'number') return Math.round(val);
+        const clean = String(val || '0').replace(',', '.').replace(/[^\d.-]/g, '');
+        return parseInt(clean, 10) || 0;
     }
 
     function playBeep() {
@@ -269,6 +292,7 @@
         if (tab === 'reconcile') calculateDifferences();
     }
 
+    // Leitura blindada: deteta automaticamente onde começa a tabela mesmo que o Excel do Sifarma tenha títulos no topo
     function loadSifarmaFile(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -278,7 +302,19 @@
                 const data = new Uint8Array(evt.target.result);
                 const wb = XLSX.read(data, { type: 'array' });
                 const sheet = wb.Sheets[wb.SheetNames[0]];
-                rawSheet = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                
+                // Lê como matriz para encontrar a linha de cabeçalho real
+                const rowsMatrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                let headerRowIndex = 0;
+                for (let i = 0; i < Math.min(rowsMatrix.length, 15); i++) {
+                    const rowStr = rowsMatrix[i].join(' ').toLowerCase();
+                    if (rowStr.includes('cnp') || rowStr.includes('código') || rowStr.includes('codigo') || rowStr.includes('designa')) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+
+                rawSheet = XLSX.utils.sheet_to_json(sheet, { range: headerRowIndex, defval: "" });
                 if (rawSheet.length > 0) {
                     const headers = Object.keys(rawSheet[0]);
                     ['col-cnp', 'col-name', 'col-stock'].forEach(id => {
@@ -287,15 +323,15 @@
                     headers.forEach(h => {
                         const low = h.toLowerCase();
                         if (low.includes('cnp') || low.includes('cód') || low.includes('cod')) document.getElementById('col-cnp').value = h;
-                        if (low.includes('designa') || low.includes('nome') || low.includes('prod')) document.getElementById('col-name').value = h;
-                        if (low.includes('stock') || low.includes('exist') || low.includes('qtd')) document.getElementById('col-stock').value = h;
+                        if (low.includes('designa') || low.includes('nome') || low.includes('prod') || low.includes('descri')) document.getElementById('col-name').value = h;
+                        if (low.includes('stock') || low.includes('exist') || low.includes('qtd') || low.includes('quant')) document.getElementById('col-stock').value = h;
                     });
                     document.getElementById('column-mapper').classList.remove('hidden');
                 } else {
-                    alert('O ficheiro parece estar vazio.');
+                    alert('Não foram encontrados dados na folha selecionada.');
                 }
             } catch(err) {
-                alert('Erro ao ler o ficheiro Excel. Confirma se é um .xlsx válido.');
+                alert('Erro ao ler o ficheiro Excel/CSV: ' + err.message);
             }
         };
         reader.readAsArrayBuffer(file);
@@ -309,23 +345,35 @@
         catalogue = rawSheet.map(r => ({
             cnp: String(r[cCNP] || '').trim(),
             name: String(r[cName] || '').trim(),
-            stock: parseInt(r[cStock]) || 0
-        })).filter(item => item.cnp !== '');
+            stock: parseStockNumber(r[cStock])
+        })).filter(item => item.cnp !== '' && item.cnp.toLowerCase() !== 'cnp');
 
         localStorage.setItem('sifarma_catalogue', JSON.stringify(catalogue));
         updateCatalogueStatus();
-        alert('Catálogo guardado com sucesso!');
         switchTab('count');
     }
 
     function updateCatalogueStatus() {
         const el = document.getElementById('catalogue-status');
         if (catalogue.length > 0) {
-            el.innerHTML = `✅ <b>${catalogue.length} produtos</b> ativos na memória. Podes saltar livremente entre as abas em cima.`;
+            el.innerHTML = `✅ <b>${catalogue.length} produtos</b> carregados na memória.`;
             el.style.color = 'var(--success)';
         } else {
             el.innerHTML = `Nenhum catálogo carregado.`;
             el.style.color = 'var(--muted)';
+        }
+    }
+
+    function resetAllApp() {
+        if (confirm('Isto vai apagar o catálogo atual e todas as contagens para começares uma marca nova do zero. Confirmar?')) {
+            catalogue = [];
+            counts = {};
+            localStorage.removeItem('sifarma_catalogue');
+            localStorage.removeItem('sifarma_cnp_counts');
+            document.getElementById('column-mapper').classList.add('hidden');
+            document.getElementById('sifarma-file').value = '';
+            updateCatalogueStatus();
+            saveCounts();
         }
     }
 
@@ -334,7 +382,7 @@
         const q = (document.getElementById('search-box').value || '').toLowerCase().trim();
 
         if (catalogue.length === 0) {
-            container.innerHTML = `<div style="padding:12px; color:var(--muted); font-size:13px;">Carrega primeiro um catálogo na Aba 1 (ou usa o botão de teste rápido).</div>`;
+            container.innerHTML = `<div style="padding:12px; color:var(--muted); font-size:13px;">Carrega primeiro o catálogo do Sifarma na Aba 1 (ou usa o botão de Teste).</div>`;
             return;
         }
 
@@ -343,7 +391,7 @@
         ).slice(0, 80);
 
         if (filtered.length === 0) {
-            container.innerHTML = `<div style="padding:12px; color:var(--danger); font-size:13px;">Nenhum produto encontrado.</div>`;
+            container.innerHTML = `<div style="padding:12px; color:var(--danger); font-size:13px;">Nenhum produto encontrado com "${q}".</div>`;
             return;
         }
 
@@ -358,8 +406,8 @@
                     </div>
                     <div class="quick-entry">
                         <input type="number" id="q-${p.cnp}" class="quick-qty-input" value="1" min="0" inputmode="numeric">
-                        <button class="btn btn-primary btn-sm" onclick="addFromList('${p.cnp}')">+ Somar</button>
-                        <button class="btn btn-secondary btn-sm" onclick="setExactFromList('${p.cnp}')">Fixar</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addFromList('${p.cnp}')">+ Somar</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="setExactFromList('${p.cnp}')">Fixar</button>
                     </div>
                 </div>
             `;
@@ -368,7 +416,7 @@
 
     function addFromList(cnp) {
         const input = document.getElementById('q-' + cnp);
-        const qty = parseInt(input.value) || 0;
+        const qty = parseInt(input.value, 10) || 0;
         if (qty <= 0) return;
         counts[cnp] = (counts[cnp] || 0) + qty;
         input.value = 1;
@@ -379,7 +427,7 @@
 
     function setExactFromList(cnp) {
         const input = document.getElementById('q-' + cnp);
-        const qty = parseInt(input.value);
+        const qty = parseInt(input.value, 10);
         if (isNaN(qty) || qty < 0) return;
         counts[cnp] = qty;
         playBeep();
@@ -392,7 +440,7 @@
         const qtyEl = document.getElementById('qty-input');
         const raw = scannedCode || cnpEl.value;
         const cnp = normalizeCNP(raw);
-        const qty = parseInt(qtyEl.value) || 1;
+        const qty = parseInt(qtyEl.value, 10) || 1;
 
         if (!cnp) return;
         counts[cnp] = (counts[cnp] || 0) + qty;
@@ -403,6 +451,10 @@
         cnpEl.value = '';
         qtyEl.value = '1';
     }
+
+    document.getElementById('cnp-input').addEventListener('keypress', e => {
+        if (e.key === 'Enter') addDirectCNP();
+    });
 
     function saveCounts() {
         localStorage.setItem('sifarma_cnp_counts', JSON.stringify(counts));
@@ -416,16 +468,16 @@
         Object.entries(counts).reverse().forEach(([cnp, qty]) => {
             skus++;
             units += qty;
-            const prodName = nameMap[cnp] || '⚠️ CNP fora do catálogo';
+            const prodName = nameMap[cnp] || '⚠️ CNP fora do catálogo carregado';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-family:monospace; font-weight:700;">${cnp}</td>
                 <td>${prodName}</td>
                 <td><span class="qty-badge">${qty}</span></td>
                 <td style="white-space:nowrap;">
-                    <button class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', -1)">-1</button>
-                    <button class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', 1)">+1</button>
-                    <button class="btn-sm" style="border:1px solid #fca5a5; background:#fef2f2; color:red;" onclick="deleteCount('${cnp}')">✕</button>
+                    <button type="button" class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', -1)">-1</button>
+                    <button type="button" class="btn-sm" style="border:1px solid #cbd5e1; background:white;" onclick="adjustCount('${cnp}', 1)">+1</button>
+                    <button type="button" class="btn-sm" style="border:1px solid #fca5a5; background:#fef2f2; color:red;" onclick="deleteCount('${cnp}')">✕</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -449,7 +501,7 @@
     }
 
     function clearCounts() {
-        if (confirm('Apagar todas as contagens?')) {
+        if (confirm('Apagar apenas as contagens mantendo o catálogo da marca?')) {
             counts = {};
             saveCounts();
             renderSearchList();
@@ -475,22 +527,21 @@
                     }
                 }
             ).catch(() => {
-                alert("A câmara exige HTTPS (o GitHub Pages fornece HTTPS automaticamente).");
+                alert("Não foi possível abrir a câmara. Verifica se autorizaste a permissão de câmara no navegador.");
                 readerDiv.style.display = 'none';
-                btn.innerText = '📷 Abrir Câmara';
+                btn.innerText = '📷 Abrir Câmara para Ler Etiqueta';
             });
             cameraActive = true;
         } else {
             html5QrCode.stop().then(() => {
                 readerDiv.style.display = 'none';
-                btn.innerText = '📷 Abrir Câmara';
+                btn.innerText = '📷 Abrir Câmara para Ler Etiqueta';
                 cameraActive = false;
             });
         }
     }
 
     function calculateDifferences() {
-        if (catalogue.length === 0) return;
         const seenCNPs = new Set();
         reconcileData = [];
 
@@ -513,7 +564,7 @@
             if (!seenCNPs.has(cnp) && qty > 0) {
                 reconcileData.push({
                     cnp: cnp,
-                    name: '⚠️ Contado mas ausente no catálogo Sifarma',
+                    name: '⚠️ Contado na prateleira mas ausente no catálogo Sifarma',
                     sifarma: 0,
                     counted: qty,
                     diff: qty
@@ -528,47 +579,91 @@
         const tbody = document.getElementById('reconcile-tbody');
         tbody.innerHTML = '';
 
-        reconcileData
+        const filtered = reconcileData.filter(r => !onlyDiffs || r.diff !== 0);
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--muted);">Sem divergências para mostrar! (Ou carrega primeiro o catálogo na Aba 1).</td></tr>`;
+            return;
+        }
+
+        filtered.forEach(r => {
+            const tr = document.createElement('tr');
+            const cls = r.diff < 0 ? 'diff-neg' : (r.diff > 0 ? 'diff-pos' : 'diff-ok');
+            const sign = r.diff > 0 ? `+${r.diff}` : r.diff;
+            tr.innerHTML = `
+                <td style="font-family:monospace; font-weight:700;">${r.cnp}</td>
+                <td>${r.name}</td>
+                <td>${r.sifarma}</td>
+                <td style="font-weight:700;">${r.counted}</td>
+                <td class="${cls}">${sign}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function getFormattedExportRows() {
+        const onlyDiffs = document.getElementById('only-diffs').checked;
+        return reconcileData
             .filter(r => !onlyDiffs || r.diff !== 0)
-            .forEach(r => {
-                const tr = document.createElement('tr');
-                const cls = r.diff < 0 ? 'diff-neg' : (r.diff > 0 ? 'diff-pos' : 'diff-ok');
-                const sign = r.diff > 0 ? `+${r.diff}` : r.diff;
-                tr.innerHTML = `
-                    <td style="font-family:monospace; font-weight:700;">${r.cnp}</td>
-                    <td>${r.name}</td>
-                    <td>${r.sifarma}</td>
-                    <td style="font-weight:700;">${r.counted}</td>
-                    <td class="${cls}">${sign}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+            .map(r => ({
+                "CNP": r.cnp,
+                "Designacao": r.name,
+                "Stock_Sifarma": r.sifarma,
+                "Stock_Fisico_Contado": r.counted,
+                "Diferenca_Acerto": r.diff
+            }));
     }
 
     function exportCountCSV() {
-        if (Object.keys(counts).length === 0) return alert('Sem contagens!');
+        if (Object.keys(counts).length === 0) return alert('Sem contagens registadas!');
         let csv = 'CNP;Quantidade_Contada\n';
         for (const [cnp, qty] of Object.entries(counts)) csv += `${cnp};${qty}\n`;
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `Contagem_CNP.csv`;
+        a.download = `Contagem_CNP_${new Date().toISOString().slice(0,10)}.csv`;
         a.click();
     }
 
     function exportFinalExcel() {
-        const onlyDiffs = document.getElementById('only-diffs').checked;
-        const rows = reconcileData.filter(r => !onlyDiffs || r.diff !== 0);
+        const rows = getFormattedExportRows();
+        if (rows.length === 0) return alert('Não há dados para exportar!');
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Acertos_CNP");
-        XLSX.writeFile(wb, `Acertos_Sifarma.xlsx`);
+        XLSX.writeFile(wb, `Acertos_Sifarma_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    async function shareToOneDrive() {
+        const rows = getFormattedExportRows();
+        if (rows.length === 0) return alert('Não há divergências para exportar!');
+        
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Acertos_CNP");
+        
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const fileName = `Acertos_Sifarma_${new Date().toISOString().slice(0,10)}.xlsx`;
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const file = new File([blob], fileName, { type: blob.type });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Acertos de Stock Sifarma',
+                    text: 'Ficheiro Excel de divergências de inventário.'
+                });
+            } catch (err) {
+                console.log('Partilha fechada pelo utilizador.');
+            }
+        } else {
+            exportFinalExcel();
+            alert('O ficheiro Excel foi descarregado para a pasta Transferências. Podes enviá-lo para o OneDrive.');
+        }
     }
 
     updateCatalogueStatus();
     saveCounts();
 </script>
 </body>
-</html>
-
-                    
+</html>         
